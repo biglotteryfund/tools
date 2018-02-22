@@ -12,10 +12,14 @@ const { flatMap } = require('lodash');
 
 const pagesToTest = [
     '/',
-    'over10k',
-    'funding/programmes',
-    'helping-working-families',
-    'welsh/helping-working-families'
+    '/funding',
+    '/funding/programmes',
+    '/funding/under10k',
+    '/funding/over10k',
+    '/research',
+    '/about',
+    '/about/strategic-framework',
+    '/funding/programmes/national-lottery-awards-for-all-england'
 ];
 
 const devicesToTest = ['iPad landscape', 'Nexus 6P', 'iPhone 5'];
@@ -30,7 +34,7 @@ function capture(urlPath, deviceName) {
         const page = await browser.newPage();
 
         await page.emulate(devices[deviceName]);
-        await page.goto(`https://www.biglotteryfund.org.uk/${urlPath}`, { waitUntil: ['networkidle0'] });
+        await page.goto(`https://www.biglotteryfund.org.uk${urlPath}`, { waitUntil: ['networkidle0'] });
 
         const filename = filenamify(`${new Date().toISOString()} - ${urlPath} - ${deviceName}.jpg`, {
             replacement: '-'
