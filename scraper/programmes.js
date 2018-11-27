@@ -4,34 +4,56 @@ const rp = require('request-promise-native');
 const cheerio = require('cheerio');
 const _ = require('lodash');
 
+const { parseProgrammeContent } = require('./parseProgrammes');
+
 const pages = 19;
 const urlBase = 'https://31.221.8.237/funding/funding-finder?sc=1&cpage=';
+const urlBaseWelsh = 'https://31.221.8.237/welsh/funding/funding-finder?sc=1&cpage=';
 
-const init = async () => {
-    const allLinks = [];
+const fetchUrl = async (urlToUse, lang) => {
+    let results = [];
     for (let i = 0; i <= pages; i++) {
-        const url = `${urlBase}${i}`;
         try {
             await rp({
-                url: url,
+                url: `${urlToUse}${i}`,
                 strictSSL: false,
             }).then(response => {
                 const $ = cheerio.load(response);
-                const links = $('.programmeListTitleBar a');
-                links.each(function(i, elem) {
-                    const path = $(this).attr('href');
-                    allLinks.push(`https://31.221.8.237${path}`);
+                const articles = $('article.programmeList');
+                articles.each(function (i, elm) {
+                    try {
+                        let prog = parseProgrammeContent($(this).html(), lang);
+                        prog.legacyId = `LEGACY-PROG-${prog.slug}`;
+                        results.push(prog);
+                    } catch (e) {
+                        console.log('Error parsing programme');
+                        console.log(e);
+                    }
                 });
             });
         } catch (e) {
             console.log(e);
         }
     }
-    return allLinks
+    // Some duplication in here
+    return _.uniqBy(results, 'slug');
 };
 
-let links = init().then(links => {
-    const uniqueLinks = _.uniq(links);
-    console.log(JSON.stringify(uniqueLinks, null, 4));
+const init = async () => {
+    const allProgrammes = {};
+
+    const enResults = await fetchUrl(urlBase, 'en');
+    const cyResults = await fetchUrl(urlBaseWelsh, 'cy');
+
+    return {
+        en: enResults,
+        cy: cyResults
+    };
+};
+
+
+// Usage: ./programmes.js > content/parsedProgrammes.json
+init().then(progs => {
+    console.log(JSON.stringify(progs, null, 4));
 });
 
